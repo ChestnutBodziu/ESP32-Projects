@@ -6,7 +6,8 @@ This repository contains completed projects, ongoing developments, and future ex
 
 ## Completed Projects
 
-- *No completed projects yet.*
+- **Home Assistant Light Controller** — A physical controller for a smart light built with an ESP32-C3, a rotary encoder and a push button. The button switches the light on and off, the encoder sets brightness, and pressing the encoder toggles warm and cool white. Runs on ESPHome.  
+  [View Project](./HA-Light-Controller/README.md)
 
 ## Ongoing Projects
 

@@ -1,0 +1,122 @@
+substitutions:
+  name: light-controller
+  friendly_name: Light Controller
+  light_entity: light.my_light   # change to your Home Assistant light entity
+  step_pct: "5"                  # brightness change per encoder detent
+  warm_kelvin: "2000"
+  cool_kelvin: "6500"
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: lolin_c3_mini
+  framework:
+    type: esp-idf
+
+logger:
+
+api:
+  encryption:
+    key: !secret api_key
+  on_client_connected:
+    - output.turn_on: status_led
+  on_client_disconnected:
+    - output.turn_off: status_led
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "light-controller fallback"
+    password: !secret ap_password
+
+captive_portal:
+
+globals:
+  - id: pending_ticks      # detents collected since the last update sent to HA
+    type: int
+    initial_value: "0"
+  - id: warm_mode          # true = warm white, false = cool white
+    type: bool
+    initial_value: "true"
+
+# Status LED: on while the ESP is connected to Home Assistant
+output:
+  - platform: gpio
+    pin: GPIO3
+    id: status_led
+
+# Send the collected detents every 120 ms so fast turning does not flood HA
+interval:
+  - interval: 120ms
+    then:
+      - if:
+          condition:
+            lambda: 'return id(pending_ticks) != 0;'
+          then:
+            - homeassistant.action:
+                action: light.turn_on
+                data:
+                  entity_id: ${light_entity}
+                  brightness_step_pct: !lambda 'return id(pending_ticks) * ${step_pct};'
+                  transition: "0.1"
+            - lambda: 'id(pending_ticks) = 0;'
+
+sensor:
+  - platform: rotary_encoder
+    name: "Encoder"
+    id: knob
+    pin_a:
+      number: GPIO4        # S1 (CLK)
+      mode: INPUT_PULLUP
+    pin_b:
+      number: GPIO5        # S2 (DT)
+      mode: INPUT_PULLUP
+    resolution: 4          # the KY-040 produces 4 edges per detent
+    internal: true
+    on_clockwise:
+      - lambda: 'id(pending_ticks) += 1;'
+    on_anticlockwise:
+      - lambda: 'id(pending_ticks) -= 1;'
+
+binary_sensor:
+  # ON/OFF button
+  - platform: gpio
+    name: "Button"
+    pin:
+      number: GPIO10
+      mode: INPUT_PULLUP
+      inverted: true
+    filters:
+      - delayed_on: 25ms
+      - delayed_off: 25ms
+    on_press:
+      - homeassistant.action:
+          action: light.toggle
+          data:
+            entity_id: ${light_entity}
+
+  # Encoder push button (KEY): toggle warm / cool white
+  - platform: gpio
+    name: "Encoder push"
+    pin:
+      number: GPIO6
+      mode: INPUT_PULLUP
+      inverted: true
+    filters:
+      - delayed_on: 25ms
+      - delayed_off: 25ms
+    on_press:
+      - lambda: 'id(warm_mode) = !id(warm_mode);'
+      - homeassistant.action:
+          action: light.turn_on
+          data:
+            entity_id: ${light_entity}
+            color_temp_kelvin: !lambda 'return id(warm_mode) ? ${warm_kelvin} : ${cool_kelvin};'
+            transition: "0.3"
