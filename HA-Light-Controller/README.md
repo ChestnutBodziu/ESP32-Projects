@@ -52,7 +52,7 @@ Rotation is collected locally and sent to Home Assistant every 120 ms as one `br
 ## Setup
 
 1. Install ESPHome (`pip install esphome`).
-2. Copy `esphome/secrets.example.yaml` to `esphome/secrets.yaml` and fill in your own values (Wi-Fi, API key, passwords). This file is ignored by git.
+2. Copy `esphome/secrets.example.yaml` to `esphome/secrets.yaml` and fill in your own values (Wi-Fi, API key, passwords). This file is ignored by git. The second Wi-Fi network is optional: delete it from both files if you only have one.
 3. In `esphome/light-controller.yaml`, set `light_entity` to your own light entity.
 4. Check that the board and pins match your hardware.
 5. Connect the ESP32-C3 over USB and flash it:
@@ -74,6 +74,12 @@ $env:ESPHOME_ESP_IDF_PREFIX = "C:\esp"
 ```
 
 Delete the project's `.esphome/build` folder after changing it.
+
+### Wi-Fi tip
+
+The firmware lists two networks and tries them in order. If you replace or move your router, add a mesh node/extender with a different SSID, or rename the network, the controller keeps working as long as one of the listed networks is in range.
+
+If the controller ever drops off Home Assistant, read its logs over USB (`esphome logs light-controller.yaml --device COM3`). Repeated `No networks found` for your SSID means the network is not visible from where the board stands (the SSID changed, or its 2.4 GHz radio is off). The ESP32-C3 supports 2.4 GHz only.
 
 **Important:** never commit `secrets.yaml`. Wi-Fi passwords, API keys and tokens stay local.
 
