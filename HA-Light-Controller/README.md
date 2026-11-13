@@ -5,7 +5,7 @@ A small physical controller for a smart light, built with an ESP32-C3, a rotary 
 - **Button** turns the light on and off.
 - **Turning the encoder** changes the brightness smoothly (5% per detent).
 - **Pressing the encoder** toggles between warm white (2000 K) and cool white (6500 K).
-- **Status LED** (optional) is lit while the ESP is connected to Home Assistant.
+- **Status LED** (optional) is wired to GPIO3, but this firmware version does not drive it yet.
 
 ## Hardware
 
